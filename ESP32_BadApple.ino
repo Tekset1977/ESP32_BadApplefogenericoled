@@ -1,14 +1,15 @@
 // Bad Apple for ESP32 with OLED SSD1306 | 2018 by Hackerspace-FFM.de | MIT-License.
 #include "FS.h"
-#include "SPIFFS.h"
+#include "LittleFS.h"
 #include "SSD1306.h"
 #include "heatshrink_decoder.h"
+#include <Wire.h> //need for generic
 
 // Hints: 
 // * Adjust the display pins below
 // * After uploading to ESP32, also do "ESP32 Sketch Data Upload" from Arduino
 
-SSD1306 display (0x3c, 4, 15); // For Heltec
+SSD1306 display (0x3c, 21, 22); //changing pins for esp32D
 //SSD1306 display (0x3c, 5, 4);
 
 #if HEATSHRINK_DYNAMIC_ALLOC
@@ -216,29 +217,34 @@ void readFile(fs::FS &fs, const char * path){
 
 void setup(){
     Serial.begin(115200);
+    Wire.begin(21, 22);   // Need to explicitly declare I2cSDA, SCL
     // Reset for some displays
-    pinMode(16,OUTPUT); digitalWrite(16, LOW); delay(50); digitalWrite(16, HIGH);
-    display.init();
+    //pinMode(16,OUTPUT); digitalWrite(16, LOW); delay(50); digitalWrite(16, HIGH); //this is not needed in generic oled
+    display.init(); //sanity display test
+    display.drawString(0, 20, "OLED OK");
+    display.display();
+    delay(2000);
+
     display.flipScreenVertically ();
     display.clear();
     display.setTextAlignment (TEXT_ALIGN_LEFT);
     display.setFont(ArialMT_Plain_10);
     display.setColor(WHITE);
-    display.drawString(0, 0, "Mounting SPIFFS...     ");
+    display.drawString(0, 0, "Mounting LittleFS...     ");
     display.display();        
-    if(!SPIFFS.begin()){
-        Serial.println("SPIFFS mount failed");
-        display.drawStringMaxWidth(0, 10, 128, "SPIFFS mount failed. Upload video.hs using ESP32 Sketch Upload."); display.display();
+    if(!LittleFS.begin()){
+        Serial.println("LittleFS mount failed");
+        display.drawStringMaxWidth(0, 10, 128, "LittleFS mount failed. Upload video.hs using ESP32 Sketch Upload."); display.display();
         return;
     }
 
     pinMode(0, INPUT_PULLUP);
     Serial.print("totalBytes(): ");
-    Serial.println(SPIFFS.totalBytes());
+    Serial.println(LittleFS.totalBytes());
     Serial.print("usedBytes(): ");
-    Serial.println(SPIFFS.usedBytes());
-    listDir(SPIFFS, "/", 0);
-    readFile(SPIFFS, "/video.hs");
+    Serial.println(LittleFS.usedBytes());
+    listDir(LittleFS, "/", 0);
+    readFile(LittleFS, "/video.hs");
 
     //Serial.print("Format SPIFSS? (enter y for yes): ");
     // while(!Serial.available()) ;
